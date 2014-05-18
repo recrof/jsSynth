@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html>
+<head>
+  	<!--link rel="stylesheet" href="http://code.jquery.com/ui/1.10.4/themes/ui-lightness/jquery-ui.css"-->
+	<meta name="viewport" content="target-densitydpi=device-dpi, initial-scale=1.0, user-scalable=no" />
+	<meta charset="utf-8">	
+	<style type="text/css">
+		input[type=range] {
+		    -webkit-appearance: none;
+		    -moz-appearance: none;		    
+		    background-color: #eee;
+		    width: 100px;
+		    height:10px;
+		}
+
+		input[type="range"]::-webkit-slider-thumb {
+		    -webkit-appearance: none;
+		    -moz-appearance: none;
+		    background-color: #000;
+		    opacity: 0.5;
+		    width: 10px;
+		    height: 12px;
+		}
+		input[type=number] {padding:1px; border:0px solid #ccc; 
+			-webkit-border-radius: 1px;
+			border-radius: 1px;
+			width: 50px;
+		}		
+		.container_left {
+			float: left; 
+			/*padding-right: 10px*/
+		}
+		.container_right {
+			float: right; 
+			/*padding-right: 10px*/
+		}		
+		.body {
+			font-family: Calibri, Verdana, Helvetica, Arial, sans-serif; 
+			font-size: 10pt; 
+		}
+		.panel {
+			border: 1px solid silver;
+			width: 210px;
+			margin: 5px;
+			padding: 5px;
+		}
+		.panel_group {
+			float: left;
+		}
+		.title {
+			font-weight: bold;
+			width: 100%;
+			padding: 0px;
+			margin: 0px;
+			padding-bottom: 5px;
+		}
+
+	</style>
+	<title>recrof's Subtractive playground</title>
+	<script type="text/javascript" src="http://code.jquery.com/jquery-latest.min.js"></script>
+	<script type="text/javascript" src="js/qwerty-hancock.js"></script>
+	<script type="text/javascript" src="js/jquery.tmpl.min.js"></script>	
+	<script type="text/javascript" src="js/wavetables.js"></script>
+	<script type="text/javascript" src="js/synth.js"></script>
+
+	<script type="text/html" id="SynthControlsTemplate">
+	<div class="panel" id="osc${id}_panel">
+	<label class="title"><input type="checkbox" id="enabled${id}" checked></input>Oscillator ${id}</label>
+	<table>
+		<tr><td><label>detune</label></td><td><input type="range" id="detune${id}" min="-100" max="100" step="1"><input type="number" id="label_detune${id}"></input></td></tr>
+		<tr><td><label>semi</label></td><td><input type="range" id="semitones${id}" min="-24" max="24" step="1"><input type="number" id="label_semitones${id}"></input></td></tr>
+		<tr><td><label>vol</label></td><td><input type="range" id="volume${id}" min="0" max="1" step="0.01"><input type="number" id="label_volume${id}"></input></td></tr>
+		<tr><td><label>type</label></td><td><select id="type${id}"></select></td></tr>
+	</table>
+	</div>
+	</script>
+</head>
+<body>
+<div class="body" width="100%">
+	<div width="100%">
+			<div id="keyboard"></div>
+	</div>
+
+	<div class="panel_group container_left" id="oscillators">
+	</div>
+	<div class="panel_group">
+		<div class="panel" id="Preset Panel">
+			<label class="title">Preset</label>
+			<table >
+				<tr><td><select id="preset_table"></select></td><td><input type="button" id="preset_load" value="Load"></td></tr>
+				<tr><td></td><td><input type="button" id="preset_save" value="Save"></td></tr>
+			</table>
+		</div>		
+		<div class="panel" id="volume_panel">
+			<label class="title">Master Volume</label>
+			<table >
+				<tr><td><label>volume</label></td><td><input type="range" min="0" max="1" step="0.01" id="volume" value="0.4"></input><input type="number" id="label_volume"></input></td></tr>
+			</table>
+			<button id="total_stop" class="body" value="">stop playing</button>							
+		</div>	
+		<div class="panel" id="filter_panel">
+			<label class="title">Filter</label>
+			<table >
+				<tr><td><label>cutoff</label></td><td><input type="range" min="0" max="140" step="1" id="cutoff" value="50"></input><input type="number" id="label_cutoff"></input></td></tr>
+				<tr><td><label>reso</label></td><td><input type="range" min="0" max="10" step="0.01" id="Q"	value="0"></input><input type="number" id="label_Q"></input></td></tr>
+				<tr style="display: none"><td><label>type</label></td><td><select id="filter_type"><option>lowpass</option><option>highpass</option></select></td></tr>	
+			</table>
+		</div>
+		<div class="panel" id="envelope_panel">
+			<label class="title">Volume Envelope</label>
+			<table>
+				<tr><td><label>attack</label></td><td><input type="range" min="0" max="5" value="0" step="0.1" id="attack"></input><input type="number" id="label_attack"></input></td></tr>
+				<tr><td><label>decay</label></td><td><input type="range" min="0" max="2" value="0.3" step="0.01" id="decay"></input><input type="number" id="label_decay"></input></td></tr>
+				<tr><td><label>sustain</label></td><td><input type="range" min="0" max="5" value="4" step="0.1" id="sustain"></input><input type="number" id="label_sustain"></input></td></tr>
+				<tr><td><label>release</label></td><td><input type="range" min="0.01" max="2" value="0.4" step="0.01" id="release"></input><input type="number" id="label_release"></input></td></tr>
+			</table>
+		</div>	
+		<div class="panel" id="lfo_panel">
+			<label class="title"><input type="checkbox" id="lfo_enabled0"></input>Low Frequency Oscillator</label>
+			<table>
+				<tr><td><label>amount</label></td><td><input type="range" min="0" max="1" value="0.5" step="0.1" id="lfo_amount0"></input><input type="number" id="label_lfo_amount0"></input></td></tr>
+				<tr><td><label>freq</label></td><td><input type="range" min="0.1" max="20" value="4" step="0.1" id="lfo_frequency0"></input><input type="number" id="label_lfo_frequency0"></input></td></tr>
+				<tr><td><label>param</label></td><td><select id="lfo_parameter0"></select></td></tr>				
+				<tr><td><label>type</label></td><td><select id="lfo_type0"></select></td></tr>
+				<tr style="display: none"><td><label>key retrig</label></td><td><input type="checkbox" id="lfo_retrig0"></td></tr>
+			</table>		
+		</div>	
+		<div class="panel" id="delay_panel" style="display:none">
+			<label class="title"><input type="checkbox" id="delay_enabled"></input>Delay</label>
+			<table>
+				<tr><td><label>delay</label></td><td><input type="range" min="0" max="1000" step="1" id="delay_delay"	value="0"></input><input type="number" id="label_delay_delay"></input></td></tr>
+				<tr><td><label>feedback</label></td><td><input type="range" min="0" max="1" step="0.1" id="delay_feedback" value="1"></input><input type="number" id="label_delay_feedback"></input></td></tr>
+				<tr><td><label>dry</label></td><td><input type="range" min="0" max="2" step="0.1" id="delay_dry" value="1"></input><input type="number" id="label_delay_dry"></input></td></tr>
+				<tr><td><label>wet</label></td><td><input type="range" min="0" max="2" step="0.1" id="delay_wet" value="1"></input><input type="number" id="label_delay_wet"></input></td></tr>
+				<tr><td><label>high-cut</label></td><td><input type="range" min="0" max="140" step="1" id="delay_high_cut" value="50"></input><input type="number" id="label_delay_high_cut"></input></td></tr>
+			</table>	
+		</div>
+		<div class="panel" id="reverb_panel" style="display:none">
+			<label class="title"><input type="checkbox" id="reverb_enabled"></input>Reverb</label>
+			<table>
+				<tr><td><label>high-cut</label></td><td><input type="range" min="0" max="140" step="1" id="reverb_high_cut" value="0"></input><input type="number" id="label_reverb_high_cut"></input></td></tr>
+				<tr><td><label>low-cut</label></td><td><input type="range" min="0" max="140" step="1" id="reverb_low_cut" value="1"></input><input type="number" id="label_reverb_low_cut"></input></td></tr>
+				<tr><td><label>dry</label></td><td><input type="range" min="0" max="2" step="0.1" id="reverb_dry" value="0.1"></input><input type="number" id="label_reverb_dry"></input></td></tr>
+				<tr><td><label>wet</label></td><td><input type="range" min="0" max="2" step="0.1" id="reverb_wet" value="0.3"></input><input type="number" id="label_reverb_wet"></input></td></tr>
+				<tr><td><label>level</label></td><td><input type="range" min="0" max="2" step="0.1" id="reverb_level" value="1"></input><input type="number" id="label_reverb_level"></input></td></tr>				
+				<tr><td><label>type</label></td><td><select id="reverb_type"><option value="impulses/ir_rev_short.wav">short</option><option value="impulses/impulse_rev.wav">long</option></select></td></tr>
+			</table>	
+		</div>
+	</div>
+	<canvas class="scope" id="scope" width="400px" height="300px" style="border: 1px solid silver; margin: 5px"></canvas>
+</div>
+<small class="body">ideas? thoughts? <a href="mailto:forcer@vnet.sk">send me a mail</a></small>
+</body>
+</html>
