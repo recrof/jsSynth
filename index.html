@@ -65,6 +65,8 @@
     <script type="text/javascript" src="js/qwerty-hancock.js"></script>
     <script type="text/javascript" src="js/jquery.tmpl.min.js"></script>
     <script type="text/javascript" src="js/wavetables.js"></script>
+    <script type="text/javascript" src="js/presets.js"></script>
+
     <script type="text/javascript" src="js/synth.js"></script>
 
     <script type="text/html" id="SynthControlsTemplate">
@@ -91,8 +93,8 @@
         <div class="panel" id="Preset Panel">
             <label class="title">Preset</label>
             <table >
-                <tr><td><select id="preset_table"></select></td><td><input type="button" id="preset_load" value="Load"></td></tr>
-                <tr><td></td><td><input type="button" id="preset_save" value="Save"></td></tr>
+                <tr><td><select id="preset_table"></select></td><td><input type="button" id="preset_load" value="load"></td><td></td></tr>
+                <tr><td><input type="button" id="preset_import" value="import"><input type="button" id="preset_export" value="export"></td><td><input type="button" id="preset_save" value="save"></td><td></td></tr>
             </table>
         </div>
         <div class="panel" id="volume_panel">
@@ -100,7 +102,6 @@
             <table >
                 <tr><td><label>volume</label></td><td><input type="range" min="0" max="1" step="0.01" id="volume" value="0.4"></input><input type="number" id="label_volume"></input></td></tr>
             </table>
-            <button id="total_stop" class="body" value="">stop playing</button>
         </div>
         <div class="panel" id="filter_panel">
             <label class="title">Filter</label>
@@ -113,9 +114,9 @@
         <div class="panel" id="envelope_panel">
             <label class="title">Volume Envelope</label>
             <table>
-                <tr><td><label>attack</label></td><td><input type="range" min="0" max="5" value="0" step="0.1" id="attack"></input><input type="number" id="label_attack"></input></td></tr>
+                <tr><td><label>attack</label></td><td><input type="range" min="0" max="5" value="0.01" step="0.01" id="attack"></input><input type="number" id="label_attack"></input></td></tr>
                 <tr><td><label>decay</label></td><td><input type="range" min="0" max="2" value="0.3" step="0.01" id="decay"></input><input type="number" id="label_decay"></input></td></tr>
-                <tr><td><label>sustain</label></td><td><input type="range" min="0" max="5" value="4" step="0.1" id="sustain"></input><input type="number" id="label_sustain"></input></td></tr>
+                <tr><td><label>sustain</label></td><td><input type="range" min="0" max="5" value="4" step="0.01" id="sustain"></input><input type="number" id="label_sustain"></input></td></tr>
                 <tr><td><label>release</label></td><td><input type="range" min="0.01" max="2" value="0.4" step="0.01" id="release"></input><input type="number" id="label_release"></input></td></tr>
             </table>
         </div>

@@ -17,7 +17,9 @@
  *
  */
 
-if(!navigator.userAgent.match(/Chrome\//)) { alert("Sorry guys, I'm using cutting-edge features of Chrome, there is high chance this won't work on Other browsers :(") }
+if (!navigator.userAgent.match(/Chrome\//)) {
+    alert("Sorry guys, I'm using cutting-edge features of Chrome, there is high chance this won't work on Other browsers :(")
+}
 
 window.requestAnimationFrame = window.requestAnimationFrame || window.mozRequestAnimationFrame ||
     window.webkitRequestAnimationFrame || window.msRequestAnimationFrame;
@@ -39,7 +41,7 @@ window.AudioContext = window.AudioContext || window.webkitAudioContext;
     "use strict";
 
     /* simple feedback delay start */
-    function FeedbackDelayNode(context, delay, feedback){
+    function FeedbackDelayNode(context, delay, feedback) {
         this.delayTime.value = delay;
         this.gainNode = context.createGainNode();
         this.gainNode.gain.value = feedback;
@@ -47,19 +49,19 @@ window.AudioContext = window.AudioContext || window.webkitAudioContext;
         this.gainNode.connect(this);
     }
 
-    function FeedbackDelayFactory(context, delayTime, feedback){
+    function FeedbackDelayFactory(context, delayTime, feedback) {
         var delay = context.createDelayNode(delayTime + 1);
         FeedbackDelayNode.call(delay, context, delayTime, feedback);
         return delay;
     }
 
-    AudioContext.prototype.createFeedbackDelay = function(delay, feedback){
+    AudioContext.prototype.createFeedbackDelay = function (delay, feedback) {
         return FeedbackDelayFactory(this, delay, feedback);
     };
     /* simple feedback delay end */
 
     /* simple reverb start */
-    function ReverbFactory(context, seconds, options){
+    function ReverbFactory(context, seconds, options) {
         options = options || {};
         var sampleRate = context.sampleRate;
         var length = sampleRate * seconds;
@@ -67,17 +69,17 @@ window.AudioContext = window.AudioContext || window.webkitAudioContext;
         var impulseL = impulse.getChannelData(0);
         var impulseR = impulse.getChannelData(1);
         var decay = options.decay || 2;
-        for (var i = 0; i < length; i++){
-          var n = options.reverse ? length - i : i;
-          impulseL[i] = (Math.random() * 2 - 1) * Math.pow(1 - n / length, decay);
-          impulseR[i] = (Math.random() * 2 - 1) * Math.pow(1 - n / length, decay);
+        for (var i = 0; i < length; i++) {
+            var n = options.reverse ? length - i : i;
+            impulseL[i] = (Math.random() * 2 - 1) * Math.pow(1 - n / length, decay);
+            impulseR[i] = (Math.random() * 2 - 1) * Math.pow(1 - n / length, decay);
         }
         var convolver = context.createConvolver();
         convolver.buffer = impulse;
         return convolver;
     }
 
-    AudioContext.prototype.createReverb = function(seconds, options){
+    AudioContext.prototype.createReverb = function (seconds, options) {
         return ReverbFactory(this, seconds, options);
     };
     /* simple reverb end */
@@ -143,17 +145,23 @@ window.AudioContext = window.AudioContext || window.webkitAudioContext;
     };
 })(window.AudioContext);
 
+var nodes = {},
+    audio = new AudioContext();
 
-var audio = new AudioContext(),
-    synth,
-    nodes = {},
+nodes.analyser = audio.createAnalyser();
+nodes.analyser.smoothingTimeConstant = 0.5;
+nodes.analyser.fftSize = 512;
+
+var synth,
     canvas,
     scope,
     framedrop = 10,
     framecounter = 0,
     octave = 1,
     keyboard = {},
-    keypressed = {};
+    keypressed = {},
+    timeByteData = new Uint8Array(nodes.analyser.fftSize),
+    freqByteData = new Uint8Array(nodes.analyser.frequencyBinCount);
 
 function getKnobValue(what) {
     var value;
@@ -177,6 +185,7 @@ function savePreset(index, name) {
     $('input[type=range],input[type=checkbox],select').each(function () {
         var key = $(this).attr('id'),
             value = getKnobValue($(this));
+        if (key.match(/preset/)) return;
         preset[key] = value;
     });
     preset.preset_name = name;
@@ -191,12 +200,30 @@ function updateKnob(id, value) {
         } else
         if ($(this)[0].tagName == 'select') {
             $('option', this).each(function () {
-                if ($(this).text() == value) { $(this).attr('selected', 'selected'); }
+                if ($(this).text() == value) {
+                    $(this).attr('selected', 'selected');
+                }
             });
         } else {
             $(this).val(value);
         }
     });
+}
+
+function importPreset() {
+    var text = window.prompt("Please paste your preset: ", '');
+    var index = $('#preset_table option').length - 1;
+    try {
+        JSON.parse(text);
+        localStorage.setItem('preset' + index, text);
+    } catch (err) {
+        alert('Preset is invalid, please try again');
+    }
+}
+
+function exportPreset(index) {
+    var text = localStorage.getItem('preset' + index);
+    window.prompt("Exported preset.. copy to clipboard and share: ", text);
 }
 
 function loadPreset(index) {
@@ -206,6 +233,15 @@ function loadPreset(index) {
         knobChanged(key, preset[key]);
     }
     return preset;
+}
+
+function loadFactoryPresets() {
+    if (presets) {
+        for (var i = 0; i < presets.length; i++) {
+            localStorage.setObject('preset' + i, presets[i]);
+        }
+    }
+
 }
 
 function updatePresets(selected) {
@@ -243,36 +279,35 @@ function knobChanged(id, value) {
         param = arr[1];
         i = arr[2];
         //console.info('lfo', i, param, value);
+        if(!synth.running_lfo[i]) return;
         synth.running_lfo[i][param] = value;
-    }
-    else if (arr = id.match(/^delay_(delay|feedback|enabled)$/)) {
+    } else if (arr = id.match(/^delay_(delay|feedback|enabled)$/)) {
         param = arr[1];
 
         if (param == 'enabled') {
-            if(value) {
+            if (value) {
                 nodes.filter.connect(nodes.delay);
             } else {
                 nodes.filter.disconnect();
                 nodes.filter.connect(nodes.compressor);
                 //nodes..connect(nodes.compressor);
             }
-        } else if(param == 'delay') {
+        } else if (param == 'delay') {
             nodes.delay.delayTime.value = value;
-        } else if(param == 'feedback') {
+        } else if (param == 'feedback') {
             nodes.delay.gainNode.gain.value = value;
         }
-    }
-    else if (arr = id.match(/^reverb_(enabled|level)$/)) {
+    } else if (arr = id.match(/^reverb_(enabled|level)$/)) {
         param = arr[1];
 
         if (param == 'enabled') {
-            if(value) {
+            if (value) {
                 nodes.reverb.connect(nodes.compressor);
             } else {
                 nodes.reverb.disconnect();
                 //nodes..connect(nodes.compressor);
             }
-        } else if(param == 'level') {
+        } else if (param == 'level') {
             //nodes.delay.delayTime.value = value;
         }
     }
@@ -313,11 +348,11 @@ $(function () {
     animateCanvas();
     //console.info(nodes.analyser.fftSize);
     showOscilatorParameters(synth.osc, synth.waveTable);
-    for(var l = 0; l < synth.running_lfo.length; l++) {
-        $('#lfo_parameter'+l).each(function () {
+    for (var l = 0; l < synth.running_lfo.length; l++) {
+        $('#lfo_parameter' + l).each(function () {
             var lfo = synth.running_lfo[l];
             for (var param in lfo.modParams) {
-            //console.info('adding lfo parameter', param);
+                //console.info('adding lfo parameter', param);
                 $(this).append($('<option>', {
                     text: param
                 }));
@@ -325,8 +360,8 @@ $(function () {
         });
     }
     for (var type in synth.waveTable) {
-        for(var l = 0; l < synth.running_lfo.length; l++) {
-            $('#lfo_type'+l).append($('<option>', {
+        for (var l = 0; l < synth.running_lfo.length; l++) {
+            $('#lfo_type' + l).append($('<option>', {
                 text: type
             }));
         };
@@ -371,14 +406,14 @@ $(function () {
     $('#update_wave').on('click', function () {
         var real = [],
             imag = [];
-        for(var i=0;i<4096;i++) {
+        for (var i = 0; i < 4096; i++) {
             real[i] = 0;
             imag[i] = 0;
         }
 
-        if(!eval($('#custom_wave').val())) return;
-        console.info(real,imag);
-        synth.updateWave(real,imag);
+        if (!eval($('#custom_wave').val())) return;
+        console.info(real, imag);
+        synth.updateWave(real, imag);
         synth.osc[0].type = 'custom';
     });
 
@@ -414,10 +449,19 @@ $(function () {
             if (confirm('Are you sure to overwrite "' + name + '" ?')) savePreset(index, name);
             else return;
         }
-
-        savePreset(index);
         updatePresets(index);
     });
+
+    $('#preset_export').on('click', function () {
+        var index = $('#preset_table').val();
+        exportPreset(index);
+    });
+
+    $('#preset_import').on('click', function () {
+        importPreset();
+        updatePresets();
+    });
+
     keyboard = new QwertyHancock({
         id: 'keyboard',
         width: 1000,
@@ -442,21 +486,18 @@ $(function () {
         keypressed[note] = 0;
     };
 
-    savePreset(0, 'default');
+    loadFactoryPresets();
     updatePresets();
 });
 
 nodes.mixer = audio.createChannelMerger();
-nodes.analyser = audio.createAnalyser();
 nodes.filter = audio.createBiquadFilter();
 nodes.volume = audio.createGain();
 nodes.compressor = audio.createDynamicsCompressor();
 
-nodes.delay = audio.createFeedbackDelay(0.4,0.5);
+nodes.delay = audio.createFeedbackDelay(0.4, 0.5);
 nodes.reverb = audio.createReverb(2);
 //nodes.feedbackGain = audio.createGain ? audio.createGain() : audio.createGainNode();
-nodes.analyser.smoothingTimeConstant = 0.5;
-nodes.analyser.fftSize = 512;
 
 var Synth = function () {
     "use strict";
@@ -466,9 +507,9 @@ var Synth = function () {
     this.play = function (freq) {
         for (var i = 0; i < this.osc.length; i++) {
             var o = this.osc[i].play(freq);
-            for(var l = 0; l < this.running_lfo.length; l++) {
+            for (var l = 0; l < this.running_lfo.length; l++) {
                 var lfo = this.running_lfo[l];
-                if(lfo.enabled && lfo.parameter == 'osc_freq') lfo.gain.connect(o.detune);
+                if (lfo.enabled && lfo.parameter == 'osc_freq') lfo.gain.connect(o.detune);
             }
         }
     };
@@ -596,9 +637,13 @@ var Synth = function () {
             if (_self.voices[freq]) return;
 
             if (match = params.type.match(/^([^_]+)_noise$/)) {
-                if(match[1] == 'pink') { keyOsc = audio.createPinkNoise(); }
-                else if (match[1] == 'brown') { keyOsc = audio.createBrownNoise(); }
-                else if (match[1] == 'white') { keyOsc = audio.createWhiteNoise(); }
+                if (match[1] == 'pink') {
+                    keyOsc = audio.createPinkNoise();
+                } else if (match[1] == 'brown') {
+                    keyOsc = audio.createBrownNoise();
+                } else if (match[1] == 'white') {
+                    keyOsc = audio.createWhiteNoise();
+                }
             } else {
 
                 keyOsc = audio.createOscillator();
@@ -807,10 +852,10 @@ var Synth = function () {
         }
     };
 
-    this.updateWave = function (real,imag) {
+    this.updateWave = function (real, imag) {
 
         //console.info('updated Wave', new Float32Array(real), new Float32Array(imag));
-        if(real && imag) self.waveTable.custom = audio.createPeriodicWave(new Float32Array(real), new Float32Array(imag));
+        if (real && imag) self.waveTable.custom = audio.createPeriodicWave(new Float32Array(real), new Float32Array(imag));
         return true;
     };
 
@@ -822,7 +867,6 @@ var Synth = function () {
     };
 
     this.osc = [];
-    this.presets = [];
     this.running_lfo = [];
     this.initWaveTable();
     this.updateWave();
@@ -883,11 +927,17 @@ function animateCanvas() {
     }
     framecounter = 0;
 
-    scope.clearRect(0, 0, canvas.width, canvas.height);
-    var timeByteData = new Uint8Array(nodes.analyser.fftSize);
-    nodes.analyser.getByteTimeDomainData(timeByteData);
-    var freqByteData = new Uint8Array(nodes.analyser.frequencyBinCount);
     nodes.analyser.getByteFrequencyData(freqByteData);
+    var totalValue = 0;
+
+    for (var i = 0; i < freqByteData.length; i+= 16) {
+        totalValue += freqByteData[i];
+    }
+    if(totalValue / freqByteData.length == 0) return; // if there is no data in output, don't draw
+
+    nodes.analyser.getByteTimeDomainData(timeByteData);
+    scope.clearRect(0, 0, canvas.width, canvas.height);
+
 
     var sampling_divider = 0.5;
     scope.lineWidth = 0.5;
