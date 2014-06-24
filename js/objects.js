@@ -120,9 +120,21 @@ AudioContext.prototype.createDelayNode = AudioContext.prototype.createDelayNode 
     };
 })(window.AudioContext);
 
-var Synth = function (audio,nodes,jsSynthWaveTable) {
+var Synth = function (jsSynthWaveTable) {
     "use strict";
-    var self = this;
+    var self = this,
+        audio = new AudioContext(),
+        nodes = {
+            mixer: audio.createChannelMerger(),
+            filter: audio.createBiquadFilter(),
+            volume: audio.createGain(),
+            compressor: audio.createDynamicsCompressor(),
+            delay: audio.createFeedbackDelay(0.4, 0.5),
+            reverb: audio.createReverb(2),
+            analyser: audio.createAnalyser()
+        };
+    this.audio = audio;
+    this.nodes = nodes;
     this.polyphony = 6;
 
     this.play = function (freq) {
@@ -567,7 +579,6 @@ var Synth = function (audio,nodes,jsSynthWaveTable) {
             polyphony: this.polyphony
         })
     );
-
     //nodes.filter.connect(nodes.compressor);
     nodes.filter.connect(nodes.delay);
 
@@ -578,6 +589,6 @@ var Synth = function (audio,nodes,jsSynthWaveTable) {
     nodes.compressor.connect(nodes.volume);
     nodes.volume.connect(nodes.analyser);
     nodes.analyser.connect(audio.destination);
-    this.running_lfo.push(new this.lfo(), new this.lfo());
 
+    this.running_lfo.push(new this.lfo(), new this.lfo());
 };

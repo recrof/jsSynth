@@ -19,10 +19,10 @@
     <div class="panel" id="osc${id}_panel">
     <label class="title"><input type="checkbox" id="enabled${id}" checked />Oscillator ${id}</label>
     <table>
-        <tr><td><label>detune</label></td><td><input type="range" id="detune${id}" min="-100" max="100" step="1"><input type="number" id="label_detune${id}" /></td></tr>
-        <tr><td><label>semi</label></td><td><input type="range" id="semitones${id}" min="-24" max="24" step="1"><input type="number" id="label_semitones${id}" /></td></tr>
-        <tr><td><label>vol</label></td><td><input type="range" id="volume${id}" min="0" max="1" step="0.01"><input type="number" id="label_volume${id}" /></td></tr>
-        <tr><td><label>type</label></td><td><select id="type${id}"></select></td></tr>
+        <tr><td class="label"><label>detune</label></td><td><input type="range" id="detune${id}" min="-100" max="100" step="1"><input type="number" id="label_detune${id}" /></td></tr>
+        <tr><td class="label"><label>semi</label></td><td><input type="range" id="semitones${id}" min="-24" max="24" step="1"><input type="number" id="label_semitones${id}" /></td></tr>
+        <tr><td class="label"><label>vol</label></td><td><input type="range" id="volume${id}" min="0" max="1" step="0.01"><input type="number" id="label_volume${id}" /></td></tr>
+        <tr><td class="label"><label>type</label></td><td><select id="type${id}"></select></td></tr>
     </table>
     </div>
     </script>
@@ -33,78 +33,78 @@
     <div width="100%">
             <div id="keyboard"></div>
     </div>
+    <div class="controls">
+        <div class="panel_group container_left" id="oscillators">
+            <div class="panel" id="Preset Panel">
+                <label class="title">Preset</label>
+                <table >
+                    <tr><td class="label"><select id="preset_table"></select></td><td><button id="preset_load">load</button></td><td></td></tr>
+                    <tr><td class="label"><button id="preset_import">import</button><button id="preset_export">export</button></td><td><button id="preset_save">save</button></td><td></td></tr>
+                </table>
+            </div>
 
-    <div class="panel_group container_left" id="oscillators">
-    </div>
-    <div class="panel_group">
-        <div class="panel" id="Preset Panel">
-            <label class="title">Preset</label>
-            <table >
-                <tr><td><select id="preset_table"></select></td><td><button id="preset_load">load</button></td><td></td></tr>
-                <tr><td><button id="preset_import">import</button><button id="preset_export">export</button></td><td><button id="preset_save">save</button></td><td></td></tr>
-            </table>
         </div>
-        <div class="panel" id="volume_panel">
-            <label class="title">Master Volume</label>
-            <table >
-                <tr><td><label>volume</label></td><td><input type="range" min="0" max="1" step="0.01" id="volume" value="0.4" /><input type="number" id="label_volume"/></td></tr>
-            </table>
-        </div>
-        <div class="panel" id="filter_panel">
-            <label class="title">Filter</label>
-            <table >
-                <tr><td><label>cutoff</label></td><td><input type="range" min="0" max="140" step="1" id="cutoff" value="50" /><input type="number" id="label_cutoff" /></td></tr>
-                <tr><td><label>reso</label></td><td><input type="range" min="0" max="40" step="0.01" id="Q"    value="0" /><input type="number" id="label_Q" /></td></tr>
-                <tr style="display: none"><td><label>type</label></td><td><select id="filter_type"><option>lowpass</option><option>highpass</option></select></td></tr>
-            </table>
-        </div>
-        <div class="panel" id="envelope_panel">
-            <label class="title">Volume Envelope</label>
-            <table>
-                <tr><td><label>attack</label></td><td><input type="range" min="0" max="5" value="0.01" step="0.01" id="attack" /><input type="number" id="label_attack" /></td></tr>
-                <tr><td><label>decay</label></td><td><input type="range" min="0" max="2" value="0.3" step="0.01" id="decay" /><input type="number" id="label_decay" /></td></tr>
-                <tr><td><label>sustain</label></td><td><input type="range" min="0" max="5" value="4" step="0.01" id="sustain" /><input type="number" id="label_sustain" /></td></tr>
-                <tr><td><label>release</label></td><td><input type="range" min="0.01" max="2" value="0.4" step="0.01" id="release" /><input type="number" id="label_release" /></td></tr>
-            </table>
-        </div>
-        <div class="panel" id="lfo_panel">
-            <label class="title"><input type="checkbox" id="lfo_enabled0" />Low Frequency Oscillator 0</label>
-            <table>
-                <tr><td><label>retrig</label></td><td><input type="checkbox" id="lfo_retrig0" /></td></tr>
-                <tr><td><label>amount</label></td><td><input type="range" min="0" max="1" value="0.5" step="0.01" id="lfo_amount0" /><input type="number" id="label_lfo_amount0" /></td></tr>
-                <tr><td><label>freq</label></td><td><input type="range" min="0.01" max="20" value="4" step="0.01" id="lfo_frequency0" /><input type="number" id="label_lfo_frequency0" /></td></tr>
-                <tr><td><label>param</label></td><td><select id="lfo_parameter0"></select></td></tr>
-                <tr><td><label>type</label></td><td><select id="lfo_type0"></select></td></tr>
-                <tr style="display: none"><td><label>key retrig</label></td><td><input type="checkbox" id="lfo_retrig0"></td></tr>
-            </table>
-        </div>
-        <div class="panel" id="lfo_panel">
-            <label class="title"><input type="checkbox" id="lfo_enabled1" />Low Frequency Oscillator 1</label>
-            <table>
-                <tr><td><label>retrig</label></td><td><input type="checkbox" id="lfo_retrig1" /></td></tr>
-                <tr><td><label>amount</label></td><td><input type="range" min="0" max="1" value="0.5" step="0.01" id="lfo_amount1" /><input type="number" id="label_lfo_amount1" /></td></tr>
-                <tr><td><label>freq</label></td><td><input type="range" min="0.01" max="20" value="4" step="0.01" id="lfo_frequency1" /><input type="number" id="label_lfo_frequency1" /></td></tr>
-                <tr><td><label>param</label></td><td><select id="lfo_parameter1"></select></td></tr>
-                <tr><td><label>type</label></td><td><select id="lfo_type1"></select></td></tr>
-                <tr style="display: none"><td><label>key retrig</label></td><td><input type="checkbox" id="lfo_retrig1"></td></tr>
-            </table>
-        </div>
-        <div class="panel" id="delay_panel" style="display:block">
-            <label class="title"><input type="checkbox" id="delay_enabled" />Feedback Delay</label>
-            <table>
-                <tr><td><label>delay</label></td><td><input type="range" min="0.01" max="2" step="0.01" id="delay_delay"    value="0.3" /><input type="number" id="label_delay_delay" /></td></tr>
-                <tr><td><label>feedbck</label></td><td><input type="range" min="0" max="0.9" step="0.1" id="delay_feedback" value="0.5" /><input type="number" id="label_delay_feedback" /></td></tr>
-            </table>
-        </div>
-        <div class="panel" id="reverb_panel" style="display:none">
-            <label class="title"><input type="checkbox" id="reverb_enabled" />Reverb</label>
-            <table>
-                <tr><td><label>level</label></td><td><input type="range" min="0" max="2" step="0.1" id="reverb_level" value="1" /><input type="number" id="label_reverb_level" /></td></tr>
-            </table>
-        </div>
-    </div>
-    <canvas class="scope" id="scope" width="400px" height="300px" style="border: 1px solid silver; margin: 5px"></canvas>
+        <div class="panel_group">
+            <div class="panel" id="volume_panel">
+                <label class="title">Master Volume</label>
+                <table >
+                    <tr><td class="label"><label>volume</label></td><td><input type="range" min="0" max="1" step="0.01" id="volume" value="0.4" /><input type="number" id="label_volume"/></td></tr>
+                </table>
+            </div>
+            <div class="panel" id="envelope_panel">
+                <label class="title">Volume Envelope</label>
+                <table>
+                    <tr><td class="label"><label>attack</label></td><td><input type="range" min="0" max="5" value="0.001" step="0.001" id="attack" /><input type="number" id="label_attack" /></td></tr>
+                    <tr><td><label>decay</label></td><td><input type="range" min="0" max="2" value="0.3" step="0.001" id="decay" /><input type="number" id="label_decay" /></td></tr>
+                    <tr><td><label>sustain</label></td><td><input type="range" min="0" max="5" value="4" step="0.001" id="sustain" /><input type="number" id="label_sustain" /></td></tr>
+                    <tr><td><label>release</label></td><td><input type="range" min="0.001" max="2" value="0.4" step="0.001" id="release" /><input type="number" id="label_release" /></td></tr>
+                </table>
+            </div>
+            <div class="panel" id="filter_panel">
+                <label class="title">Filter</label>
+                <table >
+                    <tr><td class="label"><label>cutoff</label></td><td><input type="range" min="0" max="150" step="1" id="cutoff" value="50" /><input type="number" id="label_cutoff" /></td></tr>
+                    <tr><td class="label"><label>reso</label></td><td><input type="range" min="0" max="40" step="0.01" id="Q"    value="0" /><input type="number" id="label_Q" /></td></tr>
+                    <tr style="display: none"><td><label>type</label></td><td><select id="filter_type"><option>lowpass</option><option>highpass</option></select></td></tr>
+                </table>
+            </div>
 
+            <div class="panel" id="lfo_panel">
+                <label class="title"><input type="checkbox" id="lfo_enabled0" />Low Frequency Oscillator 0</label>
+                <table>
+                    <tr><td class="label"><label>retrig</label></td><td><input type="checkbox" id="lfo_retrig0" /></td></tr>
+                    <tr><td class="label"><label>amount</label></td><td><input type="range" min="0" max="1" value="0.5" step="0.01" id="lfo_amount0" /><input type="number" id="label_lfo_amount0" /></td></tr>
+                    <tr><td class="label"><label>freq</label></td><td><input type="range" min="0.01" max="30" value="4" step="0.01" id="lfo_frequency0" /><input type="number" id="label_lfo_frequency0" /></td></tr>
+                    <tr><td class="label"><label>param</label></td><td><select id="lfo_parameter0"></select></td></tr>
+                    <tr><td class="label"><label>type</label></td><td><select id="lfo_type0"></select></td></tr>
+                </table>
+            </div>
+            <div class="panel" id="lfo_panel">
+                <label class="title"><input type="checkbox" id="lfo_enabled1" />Low Frequency Oscillator 1</label>
+                <table>
+                    <tr><td class="label"><label>retrig</label></td><td><input type="checkbox" id="lfo_retrig1" /></td></tr>
+                    <tr><td class="label"><label>amount</label></td><td><input type="range" min="0" max="1" value="0.5" step="0.01" id="lfo_amount1" /><input type="number" id="label_lfo_amount1" /></td></tr>
+                    <tr><td class="label"><label>frequency</label></td><td><input type="range" min="0.01" max="20" value="4" step="0.01" id="lfo_frequency1" /><input type="number" id="label_lfo_frequency1" /></td></tr>
+                    <tr><td class="label"><label>parameter</label></td><td><select id="lfo_parameter1"></select></td></tr>
+                    <tr><td class="label"><label>type</label></td><td><select id="lfo_type1"></select></td></tr>
+                </table>
+            </div>
+            <div class="panel" id="delay_panel" style="display:block">
+                <label class="title"><input type="checkbox" id="delay_enabled" />Feedback Delay</label>
+                <table>
+                    <tr><td class="label"><label>delay</label></td><td><input type="range" min="0.01" max="2" step="0.01" id="delay_delay"    value="0.3" /><input type="number" id="label_delay_delay" /></td></tr>
+                    <tr><td class="label"><label>feedback</label></td><td><input type="range" min="0" max="0.9" step="0.1" id="delay_feedback" value="0.5" /><input type="number" id="label_delay_feedback" /></td></tr>
+                </table>
+            </div>
+            <div class="panel" id="reverb_panel" style="display:none">
+                <label class="title"><input type="checkbox" id="reverb_enabled" />Reverb</label>
+                <table>
+                    <tr><td class="label"><label>level</label></td><td><input type="range" min="0" max="2" step="0.1" id="reverb_level" value="1" /><input type="number" id="label_reverb_level" /></td></tr>
+                </table>
+            </div>
+        </div>
+        <canvas id="scope" width="400px" height="300px"></canvas>
+    </div>
 </div>
 <small class="body">ideas? thoughts? <a href="mailto:forcer@vnet.sk">send me a mail</a></small>
 </body>
