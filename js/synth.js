@@ -1,4 +1,4 @@
-/* global navigator,window,Storage,$,localStorage,console,AudioContext,Uint8Array,Float32Array,requestAnimationFrame,jsSynthWaveTable,prompt,document,QwertyHancock,AutoUI,confirm */
+/* global Synth, navigator,window,Storage,$,localStorage,console,AudioContext,Uint8Array,Float32Array,requestAnimationFrame,jsSynthWaveTable,prompt,document,QwertyHancock,AutoUI,confirm */
 
 /*
  *
@@ -31,11 +31,13 @@ Storage.prototype.getObject = function (key) {
     return value && JSON.parse(value);
 };
 
+var s = {};
+
 $(function () {
-    var synth = new Synth(jsSynthWaveTable),
+    var synth = new Synth({waveTable: jsSynthWaveTable}),
         nodes = synth.nodes,
         audio = synth.audio,
-        presets,
+        presets,i,l,
         framedrop = 10,
         framecounter = 0,
         keypressed = {},
@@ -65,7 +67,8 @@ $(function () {
 
     function animateCanvas() {
         var sampling_divider = 0.5,
-            totalValue = 0;
+            totalValue = 0,
+            freqDivider = 2.55;
 
         requestAnimationFrame(animateCanvas, canvas);
         if ((++framecounter % framedrop) !== 0) {
@@ -78,7 +81,7 @@ $(function () {
         for (var i = 0; i < freqByteData.length; i+= 16) {
             totalValue += freqByteData[i];
         }
-        if(totalValue / freqByteData.length === 0) return; // if there is no data in output, don't draw
+        if(totalValue === 0) { return; } // if freqency byte data are all zero, don't draw
 
         nodes.analyser.getByteTimeDomainData(timeByteData);
         scope.clearRect(0, 0, canvas.width, canvas.height);
@@ -86,19 +89,28 @@ $(function () {
         scope.lineWidth = 0.3;
 
         scope.beginPath();
+        scope.moveTo(0, canvas.height / 2);
+        scope.lineTo(canvas.width, canvas.height / 2);
+        scope.strokeStyle = '#333';
+        scope.stroke();
+
+        scope.lineWidth = 0.3;
+
+        scope.beginPath();
+
         scope.moveTo(0, freqByteData[0]);
-        for (var x = 0; x/2.55 < canvas.width; x++) {
-            scope.lineTo(x/2.55, canvas.height / 1.2 - freqByteData[x] / 2);
+        for (var x = 0; x/freqDivider < canvas.width; x++) {
+            scope.lineTo(x/freqDivider, canvas.height - freqByteData[x] / 2);
         }
         scope.strokeStyle = '#aa0000';
         scope.stroke();
         scope.lineWidth = 0.7;
 
         scope.beginPath();
-        scope.moveTo(0, timeByteData[0]);
+        scope.moveTo(0, timeByteData[0]+22);
         for (x = 0; x < canvas.width; x += sampling_divider) {
 
-            scope.lineTo(x, timeByteData[x]);
+            scope.lineTo(x, timeByteData[x]+22);
             //scope.fillRect(x, timeByteData[x * sampling_divider], 1, 1);
         }
         scope.strokeStyle = '#00aa00';
@@ -116,7 +128,7 @@ $(function () {
         } else {
             value = what.val();
         }
-        console.info(id,value);
+        //console.info(id,value);
         return value;
     }
 
@@ -159,7 +171,7 @@ $(function () {
             JSON.parse(text);
             localStorage.setItem('preset' + index, text);
         } catch (err) {
-            alert('Preset is invalid, please try again');
+            window.alert('Preset is invalid, please try again');
         }
     }
 
@@ -189,7 +201,7 @@ $(function () {
     function updatePresets(selected) {
         var preset, i = 0;
         $('#preset_table').empty();
-        while (preset = localStorage.getObject('preset' + i)) {
+        while ((preset = localStorage.getObject('preset' + i))) {
             $('#preset_table').append($('<option>', {
                 text: preset.preset_name,
                 value: i
@@ -213,17 +225,17 @@ $(function () {
             nodes.filter.Q.value = value;
         } else if (id.match(/^(attack|decay|sustain|release)$/)) {
             synth.envelope[id] = value;
-        } else if (arr = id.match(/^(detune|semitones|volume|type|enabled|auto_enabled)([\d]+)$/)) {
+        } else if ((arr = id.match(/^(detune|semitones|volume|type|enabled|auto_enabled)([\d]+)$/))) {
             param = arr[1];
             i = arr[2];
             synth.osc[i][param] = value;
-        } else if (arr = id.match(/^lfo_(enabled|retrig|parameter|frequency|type|amount)([\d]+)$/)) {
+        } else if ((arr = id.match(/^lfo_(enabled|retrig|parameter|frequency|type|amount)([\d]+)$/))) {
             param = arr[1];
             i = arr[2];
             //console.info('lfo', i, param, value);
             if(!synth.running_lfo[i]) return;
             synth.running_lfo[i][param] = value;
-        } else if (arr = id.match(/^delay_(delay|feedback|enabled)$/)) {
+        } else if ((arr = id.match(/^delay_(delay|feedback|enabled)$/))) {
             param = arr[1];
 
             if (param == 'enabled') {
@@ -239,7 +251,7 @@ $(function () {
             } else if (param == 'feedback') {
                 nodes.delay.gainNode.gain.value = value;
             }
-        } else if (arr = id.match(/^reverb_(enabled|level)$/)) {
+        } else if ((arr = id.match(/^reverb_(enabled|level)$/))) {
             param = arr[1];
 
             if (param == 'enabled') {
@@ -278,6 +290,27 @@ $(function () {
         }
     }
 
+    synth.osc[0].detune = 1;
+    synth.osc[0].semitones = 7;
+    synth.osc[0].volume = 0.7;
+    synth.osc[0].type = 'analog_saw';
+
+    synth.osc[1].detune = 0;
+    synth.osc[1].semitones = 0;
+    synth.osc[1].volume = 0.7;
+    synth.osc[1].type = 'analog_saw';
+
+    synth.osc[2].detune = 0;
+    synth.osc[2].semitones = -12;
+    synth.osc[2].volume = 1;
+    synth.osc[2].type = 'triangle';
+
+    synth.osc[3].detune = 0;
+    synth.osc[3].semitones = 19;
+    synth.osc[3].volume = 0.7;
+    synth.osc[3].type = 'analog_saw';
+
+    s = synth;
     keyboard.keyDown = function (note, freq) {
         if (keypressed[note]) return;
         //console.info('start on ' + ch + ' called: ' + s.keyboard[ch]);
@@ -298,13 +331,12 @@ $(function () {
         }).appendTo($('body'));
     }
 
-    showOscilatorParameters(synth.osc, synth.waveTable);
+    showOscilatorParameters(synth.osc, synth.wTable);
 
     autoDiv.appendTo($('body'));
 
-    for (var l = 0; l < synth.running_lfo.length; l++) {
+    synth.running_lfo.forEach(function(lfo, l) {
         $('#lfo_parameter' + l).each(function () {
-            var lfo = synth.running_lfo[l];
             for (var param in lfo.modParams) {
                 //console.info('adding lfo parameter', param);
                 $(this).append($('<option>', {
@@ -312,11 +344,11 @@ $(function () {
                 }));
             }
         });
-    }
+    });
 
     for (var type in synth.waveTable) {
         if(type.match(/_noise$/)) continue;
-        for (var l = 0; l < synth.running_lfo.length; l++) {
+        for (l = 0; l < synth.running_lfo.length; l++) {
             $('#lfo_type' + l).append($('<option>', {
                 text: type
             }));
@@ -348,7 +380,7 @@ $(function () {
             knobChanged($(this).attr('id'), $(this).val());
         }
     });
-
+/*
     $('#update_wave').on('click', function () {
         var real = [],
             imag = [];
@@ -362,7 +394,7 @@ $(function () {
         synth.updateWave(real, imag);
         synth.osc[0].type = 'custom';
     });
-
+*/
     $('#preset_load').on('click', function () {
         var index = $('#preset_table').val();
         if (isNaN(index)) return;
@@ -371,7 +403,7 @@ $(function () {
 
     $(window).on('click', function(e) {
         var id = $(e.target).attr('id');
-        if(!id || !id.match(/^(auto_|autoDiv|autoUI)/)) { autoDiv.hide() };
+        if(!id || !id.match(/^(auto_|autoDiv|autoUI)/)) { autoDiv.hide(); }
     }).on('keydown',function(e) {
         if(e.keyCode == 27) {
             autoDiv.hide();
@@ -388,7 +420,7 @@ $(function () {
             })
             .on('click', function(e) {
                 var display = autoDiv.css('display') == 'block' ? 'none' : 'block';
-                if(autoDiv.attr('data-param') != $(this).attr('id')) { display = 'block' };
+                if(autoDiv.attr('data-param') != $(this).attr('id')) { display = 'block'; }
                 autoDiv.css({
                     'top': e.pageY+5,
                     'left': e.pageX+5,
