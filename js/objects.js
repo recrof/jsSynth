@@ -171,7 +171,7 @@ var Synth = function (startParams) {
         var wave, waveTableName;
         for (waveTableName in params.waveTable) {
             wave = params.waveTable[waveTableName];
-            self.wTable[waveTableName] = audio.createPeriodicWave(new Float32Array(wave.real), new Float32Array(wave.imag));
+            synth.wTable[waveTableName] = audio.createPeriodicWave(new Float32Array(wave.real), new Float32Array(wave.imag));
         }
     };
 
@@ -211,7 +211,7 @@ var Synth = function (startParams) {
         'waveTable': {
             set: function (val) {
                 params.waveTable = val;
-                self.initWaveTable();
+                synth.initWaveTable();
             },
             get: function () {
                 return params.waveTable;
@@ -321,7 +321,7 @@ var Synth = function (startParams) {
                     oscillator.gain.disconnect();
                     oscillator.gain.gain.value = parseFloat(oscillator.modParams[val].max_amount) * parseFloat(params.amount);
 
-                    if (params.enabled) _self.modParams[val].assignParam(oscillator);
+                    if (params.enabled) oscillator.modParams[val].assignParam(oscillator);
                     params.parameter = val;
                 }
             },
@@ -353,9 +353,9 @@ var Synth = function (startParams) {
 
         oscillator.play = function (freq) {
             //console.info('osc.play:', osc);
-            var attack = parseFloat(self.envelope.attack),
-                decay = parseFloat(self.envelope.decay),
-                sustain = parseFloat(self.envelope.sustain),
+            var attack = parseFloat(synth.envelope.attack),
+                decay = parseFloat(synth.envelope.decay),
+                sustain = parseFloat(synth.envelope.sustain),
                 ct = audio.currentTime,
                 keyOsc = {},
                 gate = audio.createGain(),
@@ -406,8 +406,8 @@ var Synth = function (startParams) {
         this.stop = function (freq, time) {
             var timeout = time || 0,
                 ct = audio.currentTime,
-                release = parseFloat(self.envelope.release),
-                sustain = parseFloat(self.envelope.sustain),
+                release = parseFloat(synth.envelope.release),
+                sustain = parseFloat(synth.envelope.sustain),
                 osc = oscillator.voices[freq];
             if (!osc) return;
             if (release > 0) {
@@ -422,7 +422,7 @@ var Synth = function (startParams) {
             osc.onended = function (e) {
                 var o = e.target;
                 for (var _freq in oscillator.releasingVoices) {
-                    if (o === _self.releasingVoices[_freq]) delete oscillator.releasingVoices[_freq];
+                    if (o === oscillator.releasingVoices[_freq]) delete oscillator.releasingVoices[_freq];
                     o.disconnect();
                 }
             };
@@ -453,7 +453,7 @@ var Synth = function (startParams) {
                 },
                 set: function (val) {
                     if (val) {
-                        lfo.modParams[params.parameter].assignParam(_self);
+                        lfo.modParams[params.parameter].assignParam(lfo);
                     } else {
                         lfo.gain.disconnect();
                     }
@@ -474,7 +474,7 @@ var Synth = function (startParams) {
                     return params.amount;
                 },
                 set: function (val) {
-                    var modParam = _self.modParams[params.parameter];
+                    var modParam = lfo.modParams[params.parameter];
                     lfo.gain.gain.value = parseFloat(modParam.max_amount) * parseFloat(val);
                     params.amount = parseFloat(val);
                 }
@@ -488,7 +488,7 @@ var Synth = function (startParams) {
                     lfo.gain.disconnect();
                     lfo.gain.gain.value = parseFloat(lfo.modParams[val].max_amount) * parseFloat(params.amount);
 
-                    if (params.enabled) _self.modParams[val].assignParam(lfo);
+                    if (params.enabled) lfo.modParams[val].assignParam(lfo);
                     params.parameter = val;
                 }
             },
@@ -577,7 +577,7 @@ var Synth = function (startParams) {
 
             lfo.osc.connect(lfo.gain);
 
-            if (self.wTable[params.type] === null) {
+            if (synth.wTable[params.type] === null) {
                 lfo.osc.type = params.type;
             } else {
                 lfo.osc.setPeriodicWave(synth.wTable[params.type]);
