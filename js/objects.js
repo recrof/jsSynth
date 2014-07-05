@@ -127,7 +127,15 @@ var Synth = function (startParams) {
     startParams = startParams || {};
 
     var synth = this,
-        audio = new AudioContext(),
+        params = {
+            mode: startParams.mode || 'poly',
+            audio: startParams.audio || new AudioContext(),
+            oscillators: startParams.oscillators || 4,
+            lfos: startParams.lfos || 2,
+            polyphony: startParams.polyphony || 6,
+            waveTable: startParams.waveTable || {},
+        },
+        audio = params.audio,
         nodes = {
             mixer: audio.createChannelMerger(),
             filter: audio.createBiquadFilter(),
@@ -136,16 +144,10 @@ var Synth = function (startParams) {
             delay: audio.createFeedbackDelay(0.4, 0.5),
             reverb: audio.createReverb(2),
             analyser: audio.createAnalyser()
-        },
-        params = {
-            mode: startParams.mode || 'poly',
-            oscillators: startParams.oscillators || 4,
-            lfos: startParams.lfos || 2,
-            polyphony: startParams.polyphony || 6,
-            waveTable: startParams.waveTable || {},
         };
 
-    synth.audio = audio;
+
+    synth.audio = params.audio;
     synth.nodes = nodes;
     synth.envelope = {
         attack: 0,
@@ -226,7 +228,7 @@ var Synth = function (startParams) {
                 var lfo = synth.running_lfo[l];
                 if (synth.osc[i].enabled && lfo.enabled) {
                     if(lfo.retrig) { lfo.doRetrig(); }
-                    if(lfo.parameter == 'osc_freq') { lfo.gain.connect(o.detune); }
+                    if(lfo.parameter == 'osc_all_freq') { lfo.gain.connect(o.detune); }
                 }
             }
         }
@@ -433,7 +435,7 @@ var Synth = function (startParams) {
         }
     };
 
-    this.Lfo = function (startParams) {
+    synth.Lfo = function (startParams) {
         startParams = startParams || {};
         var params = {
             enabled: startParams.enabled || 1,

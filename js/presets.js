@@ -1,4 +1,4 @@
-var presets = [{
+var jsSynthPresets = [{
             "enabled0": 1,
             "detune0": "1",
             "semitones0": "7",

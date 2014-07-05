@@ -37,7 +37,8 @@ $(function () {
     var synth = new Synth({waveTable: jsSynthWaveTable}),
         nodes = synth.nodes,
         audio = synth.audio,
-        presets,i,l,
+        presets = jsSynthPresets,
+        i,l,
         framedrop = 10,
         framecounter = 0,
         keypressed = {},
@@ -346,7 +347,7 @@ $(function () {
         });
     });
 
-    for (var type in synth.waveTable) {
+    for (var type in synth.wTable) {
         if(type.match(/_noise$/)) continue;
         for (l = 0; l < synth.running_lfo.length; l++) {
             $('#lfo_type' + l).append($('<option>', {
