@@ -121,20 +121,20 @@ AudioContext.prototype.createDelayNode = AudioContext.prototype.createDelayNode 
 })(window.AudioContext);
 
 
-var Synth = function (startParams) {
+var Synth = function (params) {
     "use strict";
 
-    startParams = startParams || {};
+    params = params || {};
+    params = {
+        mode: params.mode || 'poly',
+        audio: params.audio || new AudioContext(),
+        oscillators: params.oscillators || 4,
+        lfos: params.lfos || 2,
+        polyphony: params.polyphony || 6,
+        waveTable: params.waveTable || {},
+    };
 
     var synth = this,
-        params = {
-            mode: startParams.mode || 'poly',
-            audio: startParams.audio || new AudioContext(),
-            oscillators: startParams.oscillators || 4,
-            lfos: startParams.lfos || 2,
-            polyphony: startParams.polyphony || 6,
-            waveTable: startParams.waveTable || {},
-        },
         audio = params.audio,
         nodes = {
             mixer: audio.createChannelMerger(),
@@ -177,6 +177,7 @@ var Synth = function (startParams) {
         }
     };
 
+    // public properties
     Object.defineProperties(synth, {
         'mode': {
             set: function (val) {
@@ -221,13 +222,19 @@ var Synth = function (startParams) {
         }
     });
 
+    // public methods
     synth.play = function (freq) {
+        var i = 0, l, o, lfo, retrig;
+
+        for (l = 0; l < synth.running_lfo.length; l++) {
+            if(!synth.isPlaying()) { synth.running_lfo[l].doRetrig() };
+        }
+
         for (var i = 0; i < synth.osc.length; i++) {
             var o = synth.osc[i].play(freq);
             for (var l = 0; l < synth.running_lfo.length; l++) {
                 var lfo = synth.running_lfo[l];
                 if (synth.osc[i].enabled && lfo.enabled) {
-                    if(lfo.retrig) { lfo.doRetrig(); }
                     if(lfo.parameter == 'osc_all_freq') { lfo.gain.connect(o.detune); }
                 }
             }
@@ -237,32 +244,53 @@ var Synth = function (startParams) {
     synth.stop = function (freq) {
         var osc = synth.osc,
             ct = audio.currentTime,
-            release = parseFloat(synth.envelope.release);
+            release = parseFloat(synth.envelope.release),
+            i;
 
-        for (var i = 0; i < synth.osc.length; i++) {
+        for (i = 0; i < synth.osc.length; i++) {
             //console.log("stopped: " + "[" + i + "]: " + freq);
             osc[i].stop(freq, ct + release * 8);
         }
     };
 
-    synth.Oscillator = function (startParams) {
-        startParams = startParams || {};
+    synth.isPlaying = function () {
+        var osc = synth.osc;
+
+        for (i = 0; i < synth.osc.length; i++) {
+            if(Object.keys(osc[i].voices).length > 0 || Object.keys(osc[i].releasingVoices).length > 0) {
+                return true
+            }
+        }
+        return false;
+    }
+
+    synth.updateWave = function (real, imag) {
+        //console.info('updated Wave', new Float32Array(real), new Float32Array(imag));
+        if (real && imag) synth.wTable.custom = audio.createPeriodicWave(new Float32Array(real), new Float32Array(imag));
+        return true;
+    };
+
+    // sub-objects
+    synth.Oscillator = function (params) {
+        params = params || {};
+        params = {
+            enabled: params.enabled || 1,
+            detune: params.enabled || 0,
+            semitones: params.semitones || 0,
+            volume: params.volume || 1,
+            type: params.type || 'sawtooth',
+            polyphony: params.polyphony || 6,
+            parameter: params.parameter || 'none'
+        };
+
         var oscillator = this,
-            semitone = 100,
-            params = {
-                enabled: startParams.enabled || 1,
-                detune: startParams.enabled || 0,
-                semitones: startParams.semitones || 0,
-                volume: startParams.volume || 1,
-                type: startParams.type || 'sawtooth',
-                polyphony: startParams.polyphony || 6,
-                parameter: startParams.parameter || 'none'
-            };
+            semitone = 100;
 
         oscillator.voices = {};
         oscillator.releasingVoices = {};
         oscillator.volumeGain = audio.createGain();
 
+        // public properties
         Object.defineProperties(oscillator, {
             'enabled': {
                 set: function (val) {
@@ -347,6 +375,7 @@ var Synth = function (startParams) {
             },
         });
 
+        // public methods
         oscillator.each = function (callback) {
             for (var freq in oscillator.voices) {
                 if(callback(oscillator.voices[freq]) === false) { break; }
@@ -375,7 +404,7 @@ var Synth = function (startParams) {
             }
             else {
                 keyOsc = audio.createOscillator();
-                keyOsc.setPeriodicWave = keyOsc.setPeriodicWave || keyOsc.setWaveTable; // fucking safari (7/2014) still doesn't use setPeriodicWave
+                keyOsc.setPeriodicWave = keyOsc.setPeriodicWave || keyOsc.setWaveTable; // safari compatibility
 
                 keyOsc.frequency.value = freq;
                 keyOsc.detune.value = parseInt(oscillator.detune) + (parseInt(semitone) * oscillator.semitones);
@@ -430,24 +459,26 @@ var Synth = function (startParams) {
             };
         };
 
+        // constructor init
         if (params.enabled) {
             oscillator.volumeGain.connect(nodes.filter);
         }
     };
 
-    synth.Lfo = function (startParams) {
-        startParams = startParams || {};
-        var params = {
-            enabled: startParams.enabled || 1,
-            frequency: startParams.frequency || 5,
-            amount: startParams.amount || 1,
-            parameter: startParams.parameter || 'filter_freq',
-            type: startParams.type || 'sine',
-            retrig: startParams.retrig || 0
+    synth.Lfo = function (params) {
+        params = params || {};
+        params = {
+            enabled: params.enabled || 1,
+            frequency: params.frequency || 5,
+            amount: params.amount || 1,
+            parameter: params.parameter || 'filter_freq',
+            type: params.type || 'sine',
+            retrig: params.retrig || 0
         };
 
         var lfo = this;
 
+        // public properties
         Object.defineProperties(lfo, {
             'enabled': {
                 get: function () {
@@ -565,17 +596,19 @@ var Synth = function (startParams) {
             },
         };
 
+        // public methods
         lfo.doRetrig = function() {
-            createOsc();
+            if (lfo.enabled && lfo.retrig) { createOsc() };
         };
 
+        // private methods
         function createOsc() {
             if(lfo.osc) {
                 lfo.osc.disconnect();
                 lfo.osc.stop(0);
             }
             lfo.osc = audio.createOscillator();
-            lfo.osc.setPeriodicWave = lfo.osc.setPeriodicWave || lfo.osc.setWaveTable; // well.. safari strikes again.. fuck.
+            lfo.osc.setPeriodicWave = lfo.osc.setPeriodicWave || lfo.osc.setWaveTable; // safari compatibility
 
             lfo.osc.connect(lfo.gain);
 
@@ -589,31 +622,28 @@ var Synth = function (startParams) {
             lfo.osc.start(0);
         }
 
+        // constructor init
         lfo.gain = audio.createGain();
         createOsc();
     };
 
-    synth.updateWave = function (real, imag) {
-        //console.info('updated Wave', new Float32Array(real), new Float32Array(imag));
-        if (real && imag) synth.wTable.custom = audio.createPeriodicWave(new Float32Array(real), new Float32Array(imag));
-        return true;
-    };
+    // constructor init
     synth.initWaveTable();
     console.info(synth.wTable);
+
     for(var i = 0; i < params.oscillators; i++) {
         synth.osc[i] = new this.Oscillator();
     }
+
     for(i = 0; i < params.lfos; i++) {
         synth.running_lfo[i] = new synth.Lfo();
     }
-    nodes.filter.connect(nodes.delay);
 
+    nodes.filter.connect(nodes.delay);
     nodes.filter.connect(nodes.reverb);
     nodes.reverb.connect(nodes.compressor);
     nodes.delay.connect(nodes.compressor);
-
     nodes.compressor.connect(nodes.volume);
     nodes.volume.connect(nodes.analyser);
     nodes.analyser.connect(audio.destination);
-
 };

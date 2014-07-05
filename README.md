@@ -1,6 +1,6 @@
 jsSynth
 =======
-OpenSource subtractive synthetizer/web audio API, written in JavaScript
+OpenSource subtractive synthetizer using [Web Audio API](http://webaudio.github.io/web-audio-api/)
 
 ## Play with it
 
