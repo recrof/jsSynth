@@ -403,7 +403,7 @@ var Synth = function (startParams) {
             return keyOsc;
         };
 
-        this.stop = function (freq, time) {
+        oscillator.stop = function (freq, time) {
             var timeout = time || 0,
                 ct = audio.currentTime,
                 release = parseFloat(synth.envelope.release),
@@ -446,7 +446,7 @@ var Synth = function (startParams) {
 
         var lfo = this;
 
-        Object.defineProperties(this, {
+        Object.defineProperties(lfo, {
             'enabled': {
                 get: function () {
                     return params.enabled;
@@ -516,7 +516,7 @@ var Synth = function (startParams) {
 
         });
 
-        this.modParams = {
+        lfo.modParams = {
             filter_freq: {
                 max_amount: 2000,
                 assignParam: function (osc) {
@@ -563,7 +563,7 @@ var Synth = function (startParams) {
             },
         };
 
-        this.doRetrig = function() {
+        lfo.doRetrig = function() {
             createOsc();
         };
 
@@ -602,7 +602,7 @@ var Synth = function (startParams) {
         synth.osc[i] = new this.Oscillator();
     }
     for(i = 0; i < params.lfos; i++) {
-        synth.running_lfo[i] = new this.lfo();
+        synth.running_lfo[i] = new synth.Lfo();
     }
     nodes.filter.connect(nodes.delay);
 
