@@ -146,14 +146,22 @@ var Synth = function (params) {
             analyser: audio.createAnalyser()
         };
 
-
     synth.audio = params.audio;
     synth.nodes = nodes;
     synth.envelope = {
-        attack: 0,
-        decay: 0,
-        sustain: 100,
-        release: 0
+        volume: {
+            attack: 0,
+            decay: 0,
+            sustain: 100,
+            release: 0
+        },
+        filter: {
+            attack: 0,
+            decay: 0,
+            sustain: 100,
+            release: 0,
+            level: 0
+        }
     };
 
     synth.wTable = {
@@ -224,18 +232,28 @@ var Synth = function (params) {
 
     // public methods
     synth.play = function (freq) {
-        var i = 0, l, o, lfo, retrig;
+        var i = 0,
+            l, o, lfo, retrig;
+        //console.log('vADS:',vAttack,vDecay,vDecay,'fADS+L:',fAttack,fDecay,fSustain,fLevel);
+        synth.envelope.filter.level = nodes.filter.frequency.value;
 
         for (l = 0; l < synth.running_lfo.length; l++) {
-            if(!synth.isPlaying()) { synth.running_lfo[l].doRetrig() };
+            if (!synth.isPlaying()) {
+                synth.running_lfo[l].doRetrig();
+            }
         }
 
-        for (var i = 0; i < synth.osc.length; i++) {
-            var o = synth.osc[i].play(freq);
-            for (var l = 0; l < synth.running_lfo.length; l++) {
-                var lfo = synth.running_lfo[l];
-                if (synth.osc[i].enabled && lfo.enabled) {
-                    if(lfo.parameter == 'osc_all_freq') { lfo.gain.connect(o.detune); }
+        for (i = 0; i < synth.osc.length; i++) {
+            if (!synth.osc[i].enabled) continue;
+            o = synth.osc[i].play(freq, synth.envelope.volume, synth.envelope.filter);
+            if (synth.osc[i].enabled) {
+                for (l = 0; l < synth.running_lfo.length; l++) {
+                    lfo = synth.running_lfo[l];
+                    if (lfo.enabled) {
+                        if (lfo.parameter == 'osc_all_freq') {
+                            lfo.gain.connect(o.detune);
+                        }
+                    }
                 }
             }
         }
@@ -244,12 +262,13 @@ var Synth = function (params) {
     synth.stop = function (freq) {
         var osc = synth.osc,
             ct = audio.currentTime,
-            release = parseFloat(synth.envelope.release),
+            fRelease = synth.envelope.filter.release,
+            vRelease = synth.envelope.volume.release,
             i;
 
         for (i = 0; i < synth.osc.length; i++) {
             //console.log("stopped: " + "[" + i + "]: " + freq);
-            osc[i].stop(freq, ct + release * 8);
+            osc[i].stop(freq, ct + vRelease * 8, vRelease, fRelease);
         }
     };
 
@@ -257,12 +276,12 @@ var Synth = function (params) {
         var osc = synth.osc;
 
         for (i = 0; i < synth.osc.length; i++) {
-            if(Object.keys(osc[i].voices).length > 0 || Object.keys(osc[i].releasingVoices).length > 0) {
-                return true
+            if (Object.keys(osc[i].voices).length > 0 || Object.keys(osc[i].releasingVoices).length > 0) {
+                return true;
             }
         }
         return false;
-    }
+    };
 
     synth.updateWave = function (real, imag) {
         //console.info('updated Wave', new Float32Array(real), new Float32Array(imag));
@@ -280,9 +299,9 @@ var Synth = function (params) {
             volume: params.volume || 1,
             type: params.type || 'sawtooth',
             polyphony: params.polyphony || 6,
-            parameter: params.parameter || 'none'
+            parameter: params.parameter || 'none',
+            output: params.output || audio.destination
         };
-
         var oscillator = this,
             semitone = 100;
 
@@ -295,9 +314,13 @@ var Synth = function (params) {
             'enabled': {
                 set: function (val) {
                     if (val) {
-                        oscillator.volumeGain.connect(nodes.filter);
+                        oscillator.each(function (osc) {
+                            osc.disconnect();
+                        });
                     } else {
-                        oscillator.volumeGain.disconnect();
+                        oscillator.each(function (osc) {
+                            osc.connect(osc.gate);
+                        });
                     }
                     params.enabled = val;
                 },
@@ -378,91 +401,119 @@ var Synth = function (params) {
         // public methods
         oscillator.each = function (callback) {
             for (var freq in oscillator.voices) {
-                if(callback(oscillator.voices[freq]) === false) { break; }
+                if (callback(oscillator.voices[freq]) === false) {
+                    break;
+                }
             }
         };
 
-        oscillator.play = function (freq) {
+        oscillator.play = function (freq, vEnv, fEnv) {
             //console.info('osc.play:', osc);
-            var attack = parseFloat(synth.envelope.attack),
-                decay = parseFloat(synth.envelope.decay),
-                sustain = parseFloat(synth.envelope.sustain),
-                ct = audio.currentTime,
+            var ct = audio.currentTime,
                 keyOsc = {},
-                gate = audio.createGain(),
-                match = params.type.match(/^([^_]+)_noise$/);
+                envelopeGate = audio.createGain(),
+                envelopeFilter = audio.createBiquadFilter(),
+                noiseType = (params.type.match(/^([^_]+)_noise$/));
+            noiseType = noiseType ? noiseType[1] : 0;
+            vEnv = vEnv || {};
+            fEnv = fEnv || {};
+
             if (!oscillator.enabled) return;
             if (oscillator.voices[freq]) return;
-            if (match) {
-                if (match[1] == 'pink') {
+            if (oscillator.releasingVoices[freq]) { oscillator.releasingVoices[freq].stop(0); }
+            if (noiseType) {
+                if (noiseType == 'pink') {
                     keyOsc = audio.createPinkNoise();
-                } else if (match[1] == 'brown') {
+                } else if (noiseType == 'brown') {
                     keyOsc = audio.createBrownNoise();
-                } else if (match[1] == 'white') {
+                } else if (noiseType == 'white') {
                     keyOsc = audio.createWhiteNoise();
                 }
-            }
-            else {
+            } else {
                 keyOsc = audio.createOscillator();
                 keyOsc.setPeriodicWave = keyOsc.setPeriodicWave || keyOsc.setWaveTable; // safari compatibility
 
                 keyOsc.frequency.value = freq;
-                keyOsc.detune.value = parseInt(oscillator.detune) + (parseInt(semitone) * oscillator.semitones);
+                keyOsc.detune.value = parseInt(oscillator.detune) + (semitone * oscillator.semitones);
                 if (synth.wTable[params.type] === null) {
                     keyOsc.type = params.type;
                 } else {
                     keyOsc.setPeriodicWave(synth.wTable[params.type]);
                 }
             }
-            keyOsc.gate = gate;
+            // user properties
             keyOsc.freq = freq;
-            keyOsc.connect(keyOsc.gate);
-            gate.connect(oscillator.volumeGain);
 
-            if (attack > 0) {
-                keyOsc.gate.gain.setValueAtTime(0, ct);
-                keyOsc.gate.gain.linearRampToValueAtTime(1, ct + attack);
-
+            envelopeFilter.frequency.value = fEnv.level;
+            keyOsc.connect(envelopeGate);
+            envelopeGate.connect(envelopeFilter);
+            envelopeFilter.connect(oscillator.volumeGain);
+            console.log(fEnv.level);
+            // volume envelope
+            if (vEnv.attack > 0) {
+                envelopeGate.gain.setValueAtTime(0, ct);
+                envelopeGate.gain.linearRampToValueAtTime(1, ct + vEnv.attack);
             } else {
-                keyOsc.gate.gain.setValueAtTime(1, ct);
+                envelopeGate.gain.setValueAtTime(1, ct);
             }
-            if (decay > 0) {
-                keyOsc.gate.gain.setTargetAtTime(sustain / 5, ct + attack, decay);
+
+            if (vEnv.decay > 0) {
+                envelopeGate.gain.setTargetAtTime(vEnv.sustain / 5, ct + vEnv.attack, vEnv.decay);
             }
+            /// filter envelope
+            if (fEnv.attack > 0) {
+                envelopeFilter.frequency.setValueAtTime(0, ct);
+                envelopeFilter.frequency.linearRampToValueAtTime(fEnv.level, ct + fEnv.attack);
+            } else {
+                envelopeFilter.frequency.setValueAtTime(fEnv.level, ct);
+            }
+
+            if (fEnv.decay > 0) {
+                envelopeFilter.frequency.setTargetAtTime((fEnv.sustain / 5) * fEnv.level, ct + fEnv.attack, fEnv.decay);
+            }
+            //*/
             keyOsc.start(0);
+
+            keyOsc.gate = envelopeGate;
+            keyOsc.filter = envelopeFilter;
             oscillator.voices[freq] = keyOsc;
             return keyOsc;
         };
 
-        oscillator.stop = function (freq, time) {
-            var timeout = time || 0,
-                ct = audio.currentTime,
-                release = parseFloat(synth.envelope.release),
-                sustain = parseFloat(synth.envelope.sustain),
-                osc = oscillator.voices[freq];
+        oscillator.stop = function (freq, time, vRelease, fRelease) {
+            var osc = oscillator.voices[freq],
+                ct = audio.currentTime;
             if (!osc) return;
-            if (release > 0) {
+
+            if (vRelease > 0) {
                 osc.gate.gain.cancelScheduledValues(ct);
                 osc.gate.gain.setValueAtTime(osc.gate.gain.value, ct);
-                osc.gate.gain.setTargetAtTime(0, ct, release);
-                oscillator.releasingVoices[freq] = osc;
+                osc.gate.gain.setTargetAtTime(0, ct, vRelease);
+            }
+
+            if (fRelease > 0) {
+                osc.filter.frequency.cancelScheduledValues(ct);
+                osc.filter.frequency.setValueAtTime(osc.filter.frequency.value, ct);
+                osc.filter.frequency.setTargetAtTime(0, ct, fRelease);
             }
             delete oscillator.voices[freq];
-
-            osc.stop(time);
-            osc.onended = function (e) {
-                var o = e.target;
-                for (var _freq in oscillator.releasingVoices) {
-                    if (o === oscillator.releasingVoices[_freq]) delete oscillator.releasingVoices[_freq];
-                    o.disconnect();
-                }
-            };
+            osc.stop(time || 0);
+            if (time > 0) {
+                oscillator.releasingVoices[freq] = osc;
+                osc.onended = function (e) {
+                    var o = e.target;
+                    for (var _freq in oscillator.releasingVoices) {
+                        if (o === oscillator.releasingVoices[_freq]) delete oscillator.releasingVoices[_freq];
+                        o.disconnect();
+                    }
+                };
+            } else {
+                osc.disconnect();
+            }
         };
 
         // constructor init
-        if (params.enabled) {
-            oscillator.volumeGain.connect(nodes.filter);
-        }
+        oscillator.volumeGain.connect(params.output);
     };
 
     synth.Lfo = function (params) {
@@ -597,13 +648,15 @@ var Synth = function (params) {
         };
 
         // public methods
-        lfo.doRetrig = function() {
-            if (lfo.enabled && lfo.retrig) { createOsc() };
+        lfo.doRetrig = function () {
+            if (lfo.enabled && lfo.retrig) {
+                createOsc();
+            }
         };
 
         // private methods
         function createOsc() {
-            if(lfo.osc) {
+            if (lfo.osc) {
                 lfo.osc.disconnect();
                 lfo.osc.stop(0);
             }
@@ -629,13 +682,13 @@ var Synth = function (params) {
 
     // constructor init
     synth.initWaveTable();
-    console.info(synth.wTable);
+    //console.info(synth.wTable);
 
-    for(var i = 0; i < params.oscillators; i++) {
-        synth.osc[i] = new this.Oscillator();
+    for (var i = 0; i < params.oscillators; i++) {
+        synth.osc[i] = new this.Oscillator({output: nodes.filter});
     }
 
-    for(i = 0; i < params.lfos; i++) {
+    for (i = 0; i < params.lfos; i++) {
         synth.running_lfo[i] = new synth.Lfo();
     }
 

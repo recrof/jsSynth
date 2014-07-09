@@ -1,4 +1,4 @@
-/* global Synth, navigator,window,Storage,$,localStorage,console,AudioContext,Uint8Array,Float32Array,requestAnimationFrame,jsSynthWaveTable,prompt,document,QwertyHancock,AutoUI,confirm */
+/* global Synth,jsSynthPresets,navigator,window,Storage,$,localStorage,console,AudioContext,Uint8Array,Float32Array,requestAnimationFrame,jsSynthWaveTable,prompt,document,QwertyHancock,AutoUI,confirm */
 
 /*
  *
@@ -224,8 +224,8 @@ $(function () {
             nodes.filter.frequency.value = value * value;
         } else if (id == 'Q') {
             nodes.filter.Q.value = value;
-        } else if (id.match(/^(attack|decay|sustain|release)$/)) {
-            synth.envelope[id] = value;
+        } else if ((arr = id.match(/^(filter|volume)_(attack|decay|sustain|release)$/))) {
+            synth.envelope[arr[1]][arr[2]] = parseFloat(value);
         } else if ((arr = id.match(/^(detune|semitones|volume|type|enabled|auto_enabled)([\d]+)$/))) {
             param = arr[1];
             i = arr[2];

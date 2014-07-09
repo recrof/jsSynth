@@ -52,13 +52,13 @@
                     <tr><td class="label"><label>volume</label></td><td><input type="range" min="0" max="1" step="0.01" id="volume" value="0.4" /><input type="number" id="label_volume"/></td></tr>
                 </table>
             </div>
-            <div class="panel" id="envelope_panel">
+            <div class="panel" id="volume_envelope_panel">
                 <label class="title">Volume Envelope</label>
                 <table>
-                    <tr><td class="label"><label>attack</label></td><td><input type="range" min="0" max="5" value="0.001" step="0.001" id="attack" /><input type="number" id="label_attack" /></td></tr>
-                    <tr><td><label>decay</label></td><td><input type="range" min="0" max="2" value="0.3" step="0.001" id="decay" /><input type="number" id="label_decay" /></td></tr>
-                    <tr><td><label>sustain</label></td><td><input type="range" min="0" max="5" value="4" step="0.001" id="sustain" /><input type="number" id="label_sustain" /></td></tr>
-                    <tr><td><label>release</label></td><td><input type="range" min="0.001" max="2" value="0.4" step="0.001" id="release" /><input type="number" id="label_release" /></td></tr>
+                    <tr><td class="label"><label>attack</label></td><td><input type="range" min="0" max="5" value="0.001" step="0.001" id="volume_attack" /><input type="number" id="label_volume_attack" /></td></tr>
+                    <tr><td class="label"><label>decay</label></td><td><input type="range" min="0" max="2" value="0.3" step="0.001" id="volume_decay" /><input type="number" id="label_volume_decay" /></td></tr>
+                    <tr><td class="label"><label>sustain</label></td><td><input type="range" min="0" max="5" value="4" step="0.001" id="volume_sustain" /><input type="number" id="label_volume_sustain" /></td></tr>
+                    <tr><td class="label"><label>release</label></td><td><input type="range" min="0.001" max="2" value="0.4" step="0.001" id="volume_release" /><input type="number" id="label_volume_release" /></td></tr>
                 </table>
             </div>
             <div class="panel" id="filter_panel">
@@ -69,7 +69,15 @@
                     <tr style="display: none"><td><label>type</label></td><td><select id="filter_type"><option>lowpass</option><option>highpass</option></select></td></tr>
                 </table>
             </div>
-
+            <div class="panel" id="filter_envelope_panel">
+                <label class="title">Filter Envelope(experimental)</label>
+                <table>
+                    <tr><td class="label"><label>attack</label></td><td><input type="range" min="0" max="5" value="0" step="0.01" id="filter_attack" /><input type="number" id="label_filter_attack" /></td></tr>
+                    <tr><td class="label"><label>decay</label></td><td><input type="range" min="0" max="2" value="0" step="0.01" id="filter_decay" /><input type="number" id="label_filter_decay" /></td></tr>
+                    <tr><td class="label"><label>sustain</label></td><td><input type="range" min="0" max="5" value="5" step="0.01" id="filter_sustain" /><input type="number" id="label_filter_sustain" /></td></tr>
+                    <tr><td class="label"><label>release</label></td><td><input type="range" min="0" max="2" value="0" step="0.01" id="filter_release" /><input type="number" id="label_filter_release" /></td></tr>
+                </table>
+            </div>
             <div class="panel" id="lfo_panel">
                 <label class="title"><input type="checkbox" id="lfo_enabled0" />Low Frequency Oscillator 0</label>
                 <table>
