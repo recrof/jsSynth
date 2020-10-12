@@ -14,11 +14,11 @@ OpenSource subtractive synthetizer using [Web Audio API](http://webaudio.github.
 * low pass filter
 * ADSR volume envelope
 * 2 parametric LFOs
-* oscilloscope for freqency/time domains
+* oscilloscope for frequency/time domains
 
 ## Dependencies
 
-This project is currently dependendent on the following 3rd party libraries:
+This project is currently dependent on the following 3rd party libraries:
 * [jQuery](http://jquery.com/) - MIT
 * [jquery-tmpl](https://github.com/BorisMoore/jquery-tmpl) - Dual licensed under the MIT or GPL Version 2 licenses.
 * [qwerty-hancock](https://github.com/stuartmemo/qwerty-hancock) - MIT
